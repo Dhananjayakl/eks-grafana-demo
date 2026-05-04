@@ -10,7 +10,7 @@ terraform {
 
   # Store state remotely — replace with your S3 bucket
   backend "s3" {
-    bucket = "your-terraform-state-bucket"
+    bucket = "dhan-eks-demo-2026"
     key    = "grafana-dashboards/terraform.tfstate"
     region = "us-east-1"
   }

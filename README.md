@@ -94,7 +94,7 @@ kubectl get svc -n monitoring kube-prometheus-stack-prometheus
 
 ### Step 4: Verify Prometheus is scraping
 
-Open `http://<PROMETHEUS_EXTERNAL_IP>:9090` in browser and check:
+Open `http://a6e1e8c57420e4a618f916202b3cc240-1398809656.us-east-1.elb.amazonaws.com:9090` in browser and check:
 - Status → Targets — you should see dev and prod pods listed
 - Try query: `kube_pod_status_phase{namespace="dev"}`
 

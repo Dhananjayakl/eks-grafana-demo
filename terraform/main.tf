@@ -8,7 +8,7 @@ terraform {
     }
   }
 
-  # Store state remotely — replace with your S3 bucket
+  # Store state remotely
   backend "s3" {
     bucket = "dhan-eks-demo-2026"
     key    = "grafana-dashboards/terraform.tfstate"
@@ -18,5 +18,5 @@ terraform {
 
 provider "grafana" {
   url  = var.grafana_url
-  auth = var.grafana_api_key   # or "admin:password" for basic auth
+  auth = var.grafana_api_key
 }

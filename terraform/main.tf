@@ -8,7 +8,7 @@ terraform {
     }
   }
 
-  # Store state remotely
+  # Store state remotelyy
   backend "s3" {
     bucket = "dhan-eks-demo-2026"
     key    = "grafana-dashboards/terraform.tfstate"

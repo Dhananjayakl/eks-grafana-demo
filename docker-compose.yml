@@ -1,0 +1,25 @@
+# Run Grafana on EC2: docker-compose up -d
+# Make sure port 3000 is open in your EC2 Security Group
+
+version: "3.9"
+
+services:
+  grafana:
+    image: grafana/grafana:10.3.3
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-ChangeMeNow!}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      # Allow Terraform Grafana provider to connect
+      - GF_AUTH_API_KEY_ENABLED=true
+      - GF_FEATURE_TOGGLES_ENABLE=publicDashboards
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana.ini:/etc/grafana/grafana.ini:ro
+
+volumes:
+  grafana_data:

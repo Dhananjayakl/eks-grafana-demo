@@ -1,0 +1,112 @@
+name: Deploy Grafana Dashboards
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "terraform/**"
+      - ".github/workflows/grafana-dashboards.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "terraform/**"
+  workflow_dispatch:   # allow manual trigger
+
+env:
+  TF_VERSION: "1.7.0"
+  WORKING_DIR: "./terraform"
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials (for S3 backend)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var="grafana_url=${{ secrets.GRAFANA_URL }}" \
+            -var="grafana_api_key=${{ secrets.GRAFANA_API_KEY }}" \
+            -var="prometheus_url_dev=${{ secrets.PROMETHEUS_URL_DEV }}" \
+            -var="prometheus_url_prod=${{ secrets.PROMETHEUS_URL_PROD }}" \
+            -out=tfplan
+        env:
+          TF_IN_AUTOMATION: "true"
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ env.WORKING_DIR }}/tfplan
+          retention-days: 7
+
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    # Only apply on push to main, not PRs
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    environment: production   # requires manual approval in GitHub if configured
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ secrets.AWS_REGION }}
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ env.WORKING_DIR }}
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+        env:
+          TF_IN_AUTOMATION: "true"
+
+      - name: Output dashboard URLs
+        run: terraform output

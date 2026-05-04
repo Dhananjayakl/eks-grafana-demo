@@ -1,0 +1,234 @@
+{
+  "title": "EKS - PROD Monitoring",
+  "uid": "eks-prod-001",
+  "tags": ["eks", "prod", "kubernetes"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "namespace",
+        "type": "constant",
+        "current": { "value": "prod" },
+        "hide": 2
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Running Pods (prod)",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "uid": "${datasource_uid}", "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "count(kube_pod_status_phase{namespace=\"prod\", phase=\"Running\"})",
+          "legendFormat": "Running Pods"
+        }
+      ],
+      "options": { "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 1 },
+              { "color": "green", "value": 3 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "CPU Usage (prod pods)",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "uid": "${datasource_uid}", "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"prod\", container!=\"\"}[5m])) * 1000",
+          "legendFormat": "CPU (millicores)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 800 },
+              { "color": "red", "value": 1500 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Memory Usage (prod pods)",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "uid": "${datasource_uid}", "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"prod\", container!=\"\"}) / 1024 / 1024",
+          "legendFormat": "Memory (MiB)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "mbytes",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 1024 },
+              { "color": "red", "value": 2048 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Deployment Replicas Available",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "uid": "${datasource_uid}", "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas_available{namespace=\"prod\"}",
+          "legendFormat": "{{ deployment }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": 0 },
+              { "color": "yellow", "value": 1 },
+              { "color": "green", "value": 3 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "CPU Usage Over Time (prod namespace)",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "uid": "${datasource_uid}", "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"prod\", container!=\"\", container!=\"POD\"}[5m])) * 1000",
+          "legendFormat": "{{ pod }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Memory Usage Over Time (prod namespace)",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "uid": "${datasource_uid}", "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"prod\", container!=\"\", container!=\"POD\"}) / 1024 / 1024",
+          "legendFormat": "{{ pod }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "mbytes", "custom": { "lineWidth": 2 } }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Node CPU Usage % (prod cluster)",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "uid": "${datasource_uid}", "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "{{ instance }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0, "max": 100,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "yellow", "value": 70 },
+              { "color": "red", "value": 90 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Node Memory Usage % (prod cluster)",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "uid": "${datasource_uid}", "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "100 * (1 - ((node_memory_MemFree_bytes + node_memory_Cached_bytes + node_memory_Buffers_bytes) / node_memory_MemTotal_bytes))",
+          "legendFormat": "{{ instance }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0, "max": 100 }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Pod Restart Count (prod)",
+      "gridPos": { "x": 0, "y": 20, "w": 12, "h": 6 },
+      "datasource": { "uid": "${datasource_uid}", "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (pod) (kube_pod_container_status_restarts_total{namespace=\"prod\"})",
+          "legendFormat": "{{ pod }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineWidth": 2 },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 3 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Pod Status (prod)",
+      "gridPos": { "x": 12, "y": 20, "w": 12, "h": 6 },
+      "datasource": { "uid": "${datasource_uid}", "type": "prometheus" },
+      "targets": [
+        {
+          "expr": "kube_pod_status_phase{namespace=\"prod\"}",
+          "legendFormat": "{{ pod }} - {{ phase }}",
+          "instant": true
+        }
+      ],
+      "options": { "sortBy": [{ "displayName": "pod", "desc": false }] }
+    }
+  ]
+}

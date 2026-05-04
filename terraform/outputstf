@@ -1,0 +1,17 @@
+output "grafana_dev_dashboard_url" {
+  description = "URL to the DEV dashboard in Grafana"
+  value       = "${var.grafana_url}/d/${grafana_dashboard.eks_dev.dashboard_id}"
+}
+
+output "grafana_prod_dashboard_url" {
+  description = "URL to the PROD dashboard in Grafana"
+  value       = "${var.grafana_url}/d/${grafana_dashboard.eks_prod.dashboard_id}"
+}
+
+output "prometheus_dev_datasource_uid" {
+  value = grafana_data_source.prometheus_dev.uid
+}
+
+output "prometheus_prod_datasource_uid" {
+  value = grafana_data_source.prometheus_prod.uid
+}
